@@ -1,0 +1,42 @@
+{
+  "name": "unro",
+  "version": "1.0.0",
+  "description": "a simple undo/redo implimentation to speed up your work",
+  "main": "./src/unro.js",
+  "module": "dist/unro.esm.js",
+  "browser": "dist/unro.umd.min.js",
+  "exports": {
+    "import": "./dist/unro.esm.js",
+    "require": "./dist/unro.cjs.js"
+  },
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yousef312/UnroJS.git"
+  },
+  "keywords": [
+    "undo",
+    "redo",
+    "do",
+    "stack",
+    "call",
+    "function",
+    "func",
+    "ctrl",
+    "key"
+  ],
+  "author": "Yousef Neji",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yousef312/UnroJS/issues"
+  },
+  "homepage": "https://github.com/yousef312/UnroJS#readme",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.5",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.44.2"
+  }
+}
