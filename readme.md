@@ -19,14 +19,14 @@ const Unro = require("unro");
 And use..
 
 ```JavaScript
-var max = 20; // stack counts
+var max = 100; // stack counts
 var algo = 'clearpath'; // stack algorithme
 
 // intiate
 var stack = new Unro(max,algo);
 
 // max is the maximum cells for the stack
-// default is 20 and you can expand it later
+// default is 100 and you can expand it later
 // using the method .expand
 
 // algo is the algorithme used when pushing new stacks or the stacking method which goes like that:
@@ -40,12 +40,12 @@ You push new stack/state using the `push` method like so
 ```JavaScript
 
 function removeItem(elm, parent){
-    // pushing a simple stack
-    elm.remove()
+    // creating a new stack
     stack.push({
         undo: () => parent.append(elm),
         redo: () => elm.remove()
-    });
+    },/* true - to disable auto execute stack */);
+    // the stack will auto execute unless you passed `true`
 }
 ```
 
@@ -63,6 +63,23 @@ stack.undo();
 stack.moveTo(4);
 // this functions `out-of-range` for uknown stack index
 // or `current` if requested stack is current one 
+
+// using States
+
+let listOfFlowers = [];
+function removeFlower(name){
+    let i = listOfFlowers.findIndex(a => a == name );
+    if(i != -1)
+        stack.push({
+            undo: function(){
+                let [flower, idx] = this.load();
+                arrInsert(listOfFlowers, flower, idx);
+            },
+            redo: function(){
+                this.save([listOfFlowers.splice(i,1),i])
+            }
+        })
+}
 ```
 
 Expand the size of the stack
