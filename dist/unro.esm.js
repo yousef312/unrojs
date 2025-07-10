@@ -1,6 +1,18 @@
 const algos = ['clearpath', 'insertion', 'lineare'];
 
 /**
+ * Stack states bank
+ * @type {Map<Stack,{state: *,id: number}>}
+ */
+const Bank = new Map();
+let counter = 0;
+const clamp = (v, min, max) => v < min ? min : v > max ? max : v;
+Array.prototype.insert = function (elm, index) {
+    this.splice(clamp(index, 0, this.length), 0, elm);
+    return index;
+};
+
+/**
  * @typedef {Object} Stack
  * @property {function} undo called when user is attempting to undo action
  * @property {function} redo called when user is attempting to redo action
@@ -27,7 +39,7 @@ function Unro(max, algo) {
      * Maximum number of stacks that can be held.
      * @type {number}
      */
-    this.maximum = typeof max === "number" ? max : 20;
+    this.maximum = typeof max === "number" ? max : 100;
 
     /**
      * The algorithme to use when stacking, or the stacking method, may be one of those:
@@ -42,31 +54,39 @@ function Unro(max, algo) {
 }
 Unro.prototype = {
     /**
-     * Push new stack/state into the stacks list
+     * Push new stack/state into the stacks list, and directly execute unless
+     * you set `dontExecute` as true.
      * @method Unro#push
      * @param {Stack} stack
+     * @param {boolean} dontExecute
      * @returns {number} the current state index
      */
-    push: function (stack) {
+    push: function (stack, dontExecute) {
         if (!stack || typeof stack.undo != "function" || typeof stack.redo != "function")
             return console.error(`[UnroJS] wrong stack defintion in .push, a stack must have undo & redo functins`);
 
-        if (this.algo === 'lineare') {
+        // let's prepare the stack state storage
+        Bank.set(stack, { state: null, id: ++counter });
+        let oldIndex = this.current;
+
+        if (this.algo === 'lineare')
             this.current = this.stack.push(elm) - 1;
-        }
         else if (this.algo === 'clearpath') {
-            if (this.stack[this.current + 1] !== undefined) {
-                this.stack.splice(this.current + 1, this.stack.length);
-            }
+            if (this.stack[oldIndex + 1] !== undefined)
+                this.stack.splice(oldIndex + 1, this.stack.length)
+                .forEach(old => Bank.delete(old));
             this.current = this.stack.push(elm) - 1;
-        }
-        else if (this.algo === 'insertion') {
-            this.stack.insert(elm, this.current + 1);
+        } else if (this.algo === 'insertion') {
+            this.current = this.stack.insert(elm, oldIndex + 1);
         }
 
         // respect maximum term
         if (this.stack.length > this.maximum) {
             this.stack.shift();
+            this.current = oldIndex;
+        } else if (dontExecute === true) {
+            this.current--;
+            this.redo();
         }
 
         return this.current;
@@ -74,23 +94,23 @@ Unro.prototype = {
     /**
      * Undo the last change or state/stack
      * @method Unro#undo
-     * @param {number} step how much steps to undo; default to 1
      * @returns {Unro}
      */
-    undo: function (step = 1) {
-        this.current = Math.max(this.current - step, 0);
-        this.stack[this.current].undo();
+    undo: function () {
+        if (!this.stack[this.current - 1]) return;
+        this.current--;
+        this.stack[this.current].undo.call(this);
         return this;
     },
     /**
      * Redo the last change or state/stack
      * @method Unro#redo
-     * @param {number} step how much states to redo; default to 1
      * @returns {Unro}
      */
-    redo: function (step = 1) {
-        this.current = Math.min(this.current + step,this.stack.length - 1);
-        this.stack[this.current].redo();
+    redo: function () {
+        if (!this.stack[this.current + 1]) return;
+        this.current++;
+        this.stack[this.current].redo.call(this);
         return this;
     },
     /**
@@ -110,6 +130,7 @@ Unro.prototype = {
      */
     freeUp: function () {
         this.stack = [];
+        Bank.clear();
         this.current = 0;
         return this
     },
@@ -129,11 +150,15 @@ Unro.prototype = {
             // you must go through all between
             // the same happens here
             if (i > this.current)
-                for (let j = this.current + 1; j <= i; j++)
-                    this.stack[j].redo(); // redoing the stack
+                for (let j = this.current + 1; j <= i; j++) {
+                    this.current = j; // required for state functionality
+                    this.stack[j].redo.call(this); // redoing the stack
+                }
             else
-                for (let j = this.current; j >= i; j--)
-                    this.stack[j].undo(); // undoing the stack
+                for (let j = this.current; j >= i; j--) {
+                    this.current = j; // required for state functionality
+                    this.stack[j].undo.call(this); // undoing the stack
+                }
 
             this.current = i;
             return this.stack[i];
@@ -154,6 +179,22 @@ Unro.prototype = {
             return true
         }
         return false
+    },
+    /**
+     * Save to stack state, better be used inside `.undo` or `.redo` functions
+     * @method Unro#save
+     * @param {*} data
+     */
+    save: function (data) {
+        Bank.get(this.stack[this.current]).state = data;
+    },
+    /**
+     * Load data from stack state.
+     * @method Unro#load
+     * @returns {*}
+     */
+    load: function () {
+        return Bank.get(this.stack[this.current]).state;
     }
 };
 
