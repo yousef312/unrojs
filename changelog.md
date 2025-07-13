@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0] - 2025-07-13
+
+### Added
+
+ - new `.exportStackActions` function to export actions data in JSON format
+ - added two fields in Stack configurations `.date` and optional `.label`
+
 ## [1.1.0] - 2025-07-10
 
 ## Interducing States

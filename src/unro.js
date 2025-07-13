@@ -16,6 +16,8 @@ Array.prototype.insert = function (elm, index) {
  * @typedef {Object} Stack
  * @property {function} undo called when user is attempting to undo action
  * @property {function} redo called when user is attempting to redo action
+ * @property {string} label helps identifiy the stack action
+ * @property {Date} date the stack action date
  */
 
 /**
@@ -65,6 +67,7 @@ Unro.prototype = {
         if (!stack || typeof stack.undo != "function" || typeof stack.redo != "function")
             return console.error(`[UnroJS] wrong stack defintion in .push, a stack must have undo & redo functins`);
 
+        stack.date = new Date();
         // let's prepare the stack state storage
         Bank.set(stack, { state: null, id: ++counter });
         let oldIndex = this.current;
@@ -74,7 +77,7 @@ Unro.prototype = {
         else if (this.algo === 'clearpath') {
             if (this.stack[oldIndex + 1] !== undefined)
                 this.stack.splice(oldIndex + 1, this.stack.length)
-                .forEach(old => Bank.delete(old));
+                    .forEach(old => Bank.delete(old));
             this.current = this.stack.push(elm) - 1;
         } else if (this.algo === 'insertion') {
             this.current = this.stack.insert(elm, oldIndex + 1);
@@ -189,12 +192,22 @@ Unro.prototype = {
         Bank.get(this.stack[this.current]).state = data;
     },
     /**
-     * Load data from stack state.
+     * Load data from stack state
      * @method Unro#load
      * @returns {*}
      */
     load: function () {
         return Bank.get(this.stack[this.current]).state;
+    },
+    /**
+     * Creates a JSON stack action string 
+     * @method Unro#load
+     * @returns {string}
+     */
+    exportStackActions: function () {
+        let stacks = [];
+        this.stack.forEach(stk => stacks.push({ action: stk.label, date: stk.date }));
+        return JSON.stringify({ stacks });
     }
 }
 
