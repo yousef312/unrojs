@@ -6,11 +6,7 @@
 
     const algos = ['clearpath', 'insertion', 'lineare'];
 
-    /**
-     * Stack states bank
-     * @type {Map<Stack,{state: *,id: number}>}
-     */
-    const Bank = new Map();
+    const dfn = () => { }; // dfn stands for Default function
     let counter = 0;
     const clamp = (v, min, max) => v < min ? min : v > max ? max : v;
     Array.prototype.insert = function (elm, index) {
@@ -19,9 +15,11 @@
     };
 
     /**
-     * @typedef {Object} Stack
+     * @typedef {Object} StackDef
      * @property {function} undo called when user is attempting to undo action
      * @property {function} redo called when user is attempting to redo action
+     * @property {function} init called to auto create a stack
+     * @property {CanvasRenderingContext2D} renderer2D attach a ctx to activate the canvas copy/paste feature
      * @property {string} label helps identifiy the stack action
      * @property {Date} date the stack action date
      */
@@ -30,119 +28,121 @@
      * Simple integration of undo/redo functionalities
      * @author Yousef Neji
      */
-    function Unro(max, algo) {
+    class Unro {
         /**
          * The stacks container
          * @type {Array<Stack>}
          */
-        this.stack = [];
+        #stack = [];
 
-        /**
-         * Current stack/state index 
-         * @type {number} 
-         */
-        this.current = -1;
+        constructor(max, algo) {
 
-        /**
-         * Maximum number of stacks that can be held.
-         * @type {number}
-         */
-        this.maximum = typeof max === "number" ? max : 100;
+            /**
+             * Current stack/state index 
+             * @type {number} 
+             */
+            this.current = -1;
 
-        /**
-         * The algorithme to use when stacking, or the stacking method, may be one of those:
-         *  - `clearpath` : once you undo and push new stack the forward stacks will be removed.
-         *  - `insertion` : once you undo and push new stack the new one will be inserted in front of the forward stacks.
-         *  - `lineare` : once you push new stack it will be always added to the end of the stacks list.
-         * 
-         * by defaults its `clearpath`
-         * @type {string}
-         */
-        this.algo = algos.includes(algo) ? algo : "clearpath";
-    }
-    Unro.prototype = {
+            /**
+             * Maximum number of stacks that can be held.
+             * @type {number}
+             */
+            this.maximum = typeof max === "number" ? max : 100;
+
+            /**
+             * The algorithme to use when stacking, or the stacking method, may be one of those:
+             *  - `clearpath` : once you undo and push new stack the forward stacks will be removed.
+             *  - `insertion` : once you undo and push new stack the new one will be inserted in front of the forward stacks.
+             *  - `lineare` : once you push new stack it will be always added to the end of the stacks list.
+             * 
+             * by defaults its `clearpath`
+             * @type {string}
+             */
+            this.algo = algos.includes(algo) ? algo : "clearpath";
+        }
+
+
+
         /**
          * Push new stack/state into the stacks list, and directly execute unless
          * you set `dontExecute` as true.
          * @method Unro#push
-         * @param {Stack} stack
-         * @param {boolean} dontExecute
+         * @param {StackDef} stackdef
          * @returns {number} the current state index
          */
-        push: function (stack, dontExecute) {
-            if (!stack || typeof stack.undo != "function" || typeof stack.redo != "function")
-                return console.error(`[UnroJS] wrong stack defintion in .push, a stack must have undo & redo functins`);
+        push(stackdef) {
+            if (!stackdef || stackdef.toString() !== '[object Object]') return;
+            let stack = new Stack(stackdef);
+            if (typeof stackdef.init === "function") {
+                stackdef.init(stack);
 
-            stack.date = new Date();
+                if (!stack.isReady) throw new Error(`[UnroJS] the .init function not well constructed`);
+            } else if (typeof stackdef.undo != "function" || typeof stackdef.redo != "function")
+                throw new Error(`[UnroJS] wrong stack defintion in .push, a stack must have undo & redo or init functions`);
+
             // let's prepare the stack state storage
-            Bank.set(stack, { state: null, id: ++counter });
             let oldIndex = this.current;
 
             if (this.algo === 'lineare')
-                this.current = this.stack.push(elm) - 1;
+                this.current = this.#stack.push(stack) - 1;
             else if (this.algo === 'clearpath') {
-                if (this.stack[oldIndex + 1] !== undefined)
-                    this.stack.splice(oldIndex + 1, this.stack.length)
-                        .forEach(old => Bank.delete(old));
-                this.current = this.stack.push(elm) - 1;
+                if (this.#stack[oldIndex + 1] !== undefined)
+                    this.#stack.splice(oldIndex + 1, this.#stack.length);
+                this.current = this.#stack.push(stack) - 1;
             } else if (this.algo === 'insertion') {
-                this.current = this.stack.insert(elm, oldIndex + 1);
+                this.current = this.#stack.insert(stack, oldIndex + 1);
             }
 
             // respect maximum term
-            if (this.stack.length > this.maximum) {
-                this.stack.shift();
+            if (this.#stack.length > this.maximum) {
+                this.#stack.shift();
                 this.current = oldIndex;
-            } else if (dontExecute === true) {
-                this.current--;
-                this.redo();
             }
 
             return this.current;
-        },
+        }
         /**
          * Undo the last change or state/stack
          * @method Unro#undo
          * @returns {Unro}
          */
-        undo: function () {
-            if (!this.stack[this.current - 1]) return;
-            this.current--;
-            this.stack[this.current].undo.call(this);
+        undo() {
+            this.#stack[this.current].undo(this);
+            if (this.#stack[this.current - 1])
+                this.current--;
             return this;
-        },
+        }
         /**
          * Redo the last change or state/stack
          * @method Unro#redo
          * @returns {Unro}
          */
-        redo: function () {
-            if (!this.stack[this.current + 1]) return;
-            this.current++;
-            this.stack[this.current].redo.call(this);
+        redo() {
+            this.#stack[this.current].redo(this);
+            if (this.#stack[this.current + 1])
+                this.current++;
             return this;
-        },
+        }
         /**
          * Expand the stack maximum length
          * @method Unro#expand
          * @param {number} value
          * @returns {Unro}
          */
-        expand: function (value) {
+        expand(value) {
             this.maximum = typeof value == "number" ? value : this.maximum;
             return this
-        },
+        }
         /**
          * Clear/reset the stack content
-         * @method Unro#freeUp
+         * @method Unro#free
          * @returns {Unro}
          */
-        freeUp: function () {
-            this.stack = [];
-            Bank.clear();
+        free() {
+            this.#stack = [];
             this.current = 0;
             return this
-        },
+        }
         /**
          * Move to a specified stack, the function will execute all stack up to 
          * the one requested, and return either the stack or:
@@ -152,27 +152,27 @@
          * @param {number} i 
          * @returns {string} the wanted stack content or the string `out-of-rang`
          */
-        moveTo: function (i) {
+        moveTo(i) {
             if (i === this.current) return 'current';
-            if (this.stack[i]) {
+            if (this.#stack[i]) {
                 // you can't just jump from age 20 to 55
                 // you must go through all between
                 // the same happens here
                 if (i > this.current)
                     for (let j = this.current + 1; j <= i; j++) {
                         this.current = j; // required for state functionality
-                        this.stack[j].redo.call(this); // redoing the stack
+                        this.#stack[j].redo(this); // redoing the stack
                     }
                 else
                     for (let j = this.current; j >= i; j--) {
                         this.current = j; // required for state functionality
-                        this.stack[j].undo.call(this); // undoing the stack
+                        this.#stack[j].undo(this); // undoing the stack
                     }
 
                 this.current = i;
-                return this.stack[i];
+                return this.#stack[i];
             } else return 'out-of-range';
-        },
+        }
         /**
          * Change the `algo` property value, available options are:
          *  - `clearpath` : once you undo and push new stack the forward stacks will be removed.
@@ -182,44 +182,164 @@
          * @param {string} algo 
          * @returns {boolean}
          */
-        setAlgorithme: function (algo) {
+        setAlgorithme(algo) {
             if (algos.includes(algo)) {
                 this.algo = algo;
                 return true
             }
             return false
-        },
-        /**
-         * Save to stack state, better be used inside `.undo` or `.redo` functions
-         * @method Unro#save
-         * @param {*} data
-         */
-        save: function (data) {
-            Bank.get(this.stack[this.current]).state = data;
-        },
-        /**
-         * Load data from stack state
-         * @method Unro#load
-         * @returns {*}
-         */
-        load: function () {
-            return Bank.get(this.stack[this.current]).state;
-        },
+        }
+
         /**
          * Creates a JSON stack action string 
-         * @method Unro#load
+         * @method Unro#exportStackActions
          * @returns {string}
          */
-        exportStackActions: function () {
+        exportStackActions() {
             let stacks = [];
-            this.stack.forEach(stk => stacks.push({ action: stk.label, date: stk.date }));
+            this.#stack.forEach(stk => stacks.push({ action: stk.label, date: stk.date }));
             return JSON.stringify({ stacks });
         }
-    };
 
-    window.Unro = Unro;
+        /**
+         * Acquire a shortcut library functionality such as qway.js, binding certain pattern as follow:
+         *  - `a`: ctrl+z => undo ctrl+y => redo
+         *  - `b`: ctrl+z => undo ctrl+shift+z => redo
+         * @method Unro#integrate
+         * @param {Object} accelLib 
+         * @param {"a" | "b"} pattern 
+         */
+        acquire(accelLib, pattern) {
+            if (accelLib.bind) {
+                let _this = this;
+                let undo = 'ctrl+w',
+                    redo = 'ctrl+y';
+                if (pattern == "b") {
+                    undo = 'ctrl+w';
+                    redo = 'ctrl+shift+y';
+                }
 
-    return Unro;
+                accelLib.bind(undo, function () {
+                    _this.undo();
+                });
+                accelLib.bind(redo, function () {
+                    _this.redo();
+                });
+            }
+        }
+
+        /**
+         * The length of the current stack
+         * @type {number}
+         */
+        get len() {
+            return this.#stack.length;
+        }
+    }
+
+    class Stack {
+        #undo = dfn;
+        #redo = dfn;
+        /**
+         * Provider of render from/to canvas feature
+         * @type {CanvasRenderingContext2D}
+         */
+        #renderer2D = null;
+        /**
+         * Canvas stack when using render from/to feature
+         * @type {Array<CanvasRenderingContext2D>}
+         */
+        #ctxStack = null;
+        #state = null;
+        /**
+         * Used for canvas copy/paste to check whether the stack is ready or not
+         * @type {boolean}
+         */
+        #ready = false;
+        #id = ++counter;
+
+        /**
+         * 
+         * @param {StackDef} def 
+         */
+        constructor(def) {
+            this.#undo = def.undo;
+            this.#redo = def.redo;
+            this.date = new Date();
+            this.label = def.label;
+            if (def.renderer2D instanceof CanvasRenderingContext2D) {
+                this.#renderer2D = def.renderer2D;
+                this.#ctxStack = [];
+            }
+        }
+
+        get undo() {
+            return this.#undo;
+        }
+
+        get redo() {
+            return this.#redo;
+        }
+
+        get isReady() {
+            return this.#ready;
+        }
+
+        get id() {
+            return this.#id
+        }
+
+        save(data) {
+            if (data != undefined)
+                this.#state = data;
+        }
+        load() {
+            return this.#state;
+        }
+        copy() {
+            if (!this.#renderer2D)
+                throw new Error(`[UnroJS] Define .renderer2D in order to use canvas copy/paste features.`);
+
+            if (this.#ctxStack.length <= 2) {
+                let ctx = new OffscreenCanvas(this.#renderer2D.canvas.width, this.#renderer2D.canvas.height).getContext('2d');
+                ctx.drawImage(this.#renderer2D.canvas, 0, 0);
+                this.#ctxStack.push(ctx);
+
+                if (this.#ctxStack.length == 2) {
+                    this.#ready = true;
+                    // auto construct
+                    let oldUndo = this.#undo;
+                    let oldRedo = this.#redo;
+                    this.#undo = function () {
+                        this.paste('undo');
+                        if (typeof oldUndo === "function") oldUndo();
+                    };
+                    this.#redo = function () {
+                        this.paste('redo');
+                        if (typeof oldRedo === "function") oldRedo();
+                    };
+                }
+            }
+        }
+
+        paste(step) {
+            if (!this.#renderer2D)
+                throw new Error(`[UnroJS] Define .renderer2D in order to use canvas copy/paste features.`);
+
+            // getting canvas stack
+            let ctx = this.#ctxStack[[1, "undo"].includes(step) ? 0 : [2, "redo"].includes(step) ? 1 : -1];
+            if (!ctx) throw new Error(`[UnroJS] Unknown "step" in .paste "${step}"`);
+            // displaying it
+            this.#renderer2D.clearRect(0, 0, this.#renderer2D.canvas.width, this.#renderer2D.canvas.height);
+            this.#renderer2D.drawImage(ctx.canvas, 0, 0);
+        }
+    }
+
+    const unro = new Unro();
+
+    window.Unro = unro;
+
+    return unro;
 
 }));
 //# sourceMappingURL=unro.umd.js.map
