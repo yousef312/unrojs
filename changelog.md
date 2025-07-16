@@ -1,5 +1,55 @@
 # Changelog
 
+## [3.1.0] - 2025-07-15
+
+### Changed
+
+ - when `.push`ing a new canvas stack, you can defined `unro` `redo` function that will run right after the auto created calls.
+
+### Added
+
+ - new `len` attribute that returns the stack length
+
+### Fixed
+
+ - `.push` function not working, Fixed.
+ - `moveTo` not working properly, Fixed.
+ - error `Failed to execute...` fixed.
+ - fixed `.acquire` set undo to ctrl+w instead of ctrl+z as supposed to.
+ - undo and redo stability improved, skip first and last stack fixed.
+
+## [3.0.0] - 2025-07-15
+
+### Changed
+
+ - auto instantiate the Unro class
+ - function `.freeUp` renamed to `.free`
+
+### Added
+
+ - new `acquire` function to auto require a accelerator library functionalities
+
+## [2.0.0] - 2025-07-15
+
+### Changed
+
+ - library is now written ES6 class style.
+ - stacks are now are self defined instances.
+ - `.save` `.load` now belongs to stacks not `Unro`
+ - `.push` auto-execute not much helpfull so it was removed
+
+### Added
+
+ - new feature "**canvas stacking**" to support canvas snapshots stacking
+ - new `.init` to auto prepare canvas stacking
+ - new attribute `renderer2D` to define canvas stacking source
+ - new `.copy` function to use within `.init` to defined a stack action (`undo` or `redo`), learn more in the readme.md.
+ - new `.paste` function to use in the canvas stacking
+
+### Fixed
+ 
+ - error(undefined 'elm') when executing .push function fixed
+
 ## [1.2.0] - 2025-07-13
 
 ### Added
