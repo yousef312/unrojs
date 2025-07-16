@@ -31,7 +31,20 @@ class Unro {
      */
     #stack = [];
 
-    constructor(max, algo) {
+    /**
+     * Last action performed
+     * @type {"undo" | "redo"}
+     */
+    #last = null;
+
+    /**
+     * Direction is important for stability and overall library functioning,
+     * here It's define by 1 as to go forward "redo" and 0 for backward "undo"
+     * @type {number}
+     */
+    #dir = 0;
+
+    constructor() {
 
         /**
          * Current stack/state index 
@@ -43,7 +56,7 @@ class Unro {
          * Maximum number of stacks that can be held.
          * @type {number}
          */
-        this.maximum = typeof max === "number" ? max : 100;
+        this.maximum = 100;
 
         /**
          * The algorithme to use when stacking, or the stacking method, may be one of those:
@@ -54,7 +67,12 @@ class Unro {
          * by defaults its `clearpath`
          * @type {string}
          */
-        this.algo = algos.includes(algo) ? algo : "clearpath";
+        this.algo = "clearpath";
+    }
+
+
+    get lastAction(){
+        return this.#last;
     }
 
 
@@ -95,6 +113,7 @@ class Unro {
             this.current = oldIndex;
         }
 
+        this.#dir = 0;
         return this.current;
     }
     /**
@@ -106,6 +125,8 @@ class Unro {
         this.#stack[this.current].undo(this);
         if (this.#stack[this.current - 1])
             this.current--;
+
+        this.#last = "undo";
         return this;
     }
     /**
@@ -114,9 +135,11 @@ class Unro {
      * @returns {Unro}
      */
     redo() {
-        this.#stack[this.current].redo(this);
         if (this.#stack[this.current + 1])
             this.current++;
+        
+        this.#stack[this.current].redo(this);
+        this.#last = "redo";
         return this;
     }
     /**
@@ -331,9 +354,12 @@ class Stack {
     }
 }
 
-const unro = new Unro();
 
-window.Unro = unro;
+function unro() {
+    return new Unro();
+}
+
+window.unro = unro;
 
 module.exports = unro;
 //# sourceMappingURL=unro.cjs.js.map
