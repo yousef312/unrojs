@@ -42,11 +42,16 @@
         #last = null;
 
         /**
-         * Direction is important for stability and overall library functioning,
-         * here It's define by 1 as to go forward "redo" and 0 for backward "undo"
-         * @type {number}
+         * Holds a state of whether all stacks are done or not
+         * @type {boolean}
          */
-        #dir = 0;
+        #alldone = false;
+
+        /**
+         * Holds a state of whether all stacks are undone or not
+         * @type {boolean}
+         */
+        #allundone = false;
 
         constructor() {
 
@@ -77,6 +82,14 @@
 
         get lastAction(){
             return this.#last;
+        }
+
+        get isFirstStack(){
+            return this.#allundone === true;
+        }
+
+        get isLastStack(){
+            return this.#alldone === true;
         }
 
 
@@ -117,7 +130,6 @@
                 this.current = oldIndex;
             }
 
-            this.#dir = 0;
             return this.current;
         }
         /**
@@ -126,11 +138,15 @@
          * @returns {Unro}
          */
         undo() {
+            if(this.#allundone) return;
+
             this.#stack[this.current].undo(this);
             if (this.#stack[this.current - 1])
                 this.current--;
+            else this.#allundone = true;
 
             this.#last = "undo";
+            this.#alldone = false;
             return this;
         }
         /**
@@ -141,9 +157,11 @@
         redo() {
             if (this.#stack[this.current + 1])
                 this.current++;
+            else return this.#alldone = true;
             
             this.#stack[this.current].redo(this);
             this.#last = "redo";
+            this.#allundone = false;
             return this;
         }
         /**

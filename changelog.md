@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.2.1] - 2025-08-03
+
+### Fixed
+
+ - undo/redo keeps repeating for the last/first stack infinitely, Fixed
+
+### Added
+
+ - added two attribute `.isFirstStack` and `.isLastStack` to check whether current stack is the first or the last. 
+
 ## [3.2.0] - 2025-07-16
 
 ### Added

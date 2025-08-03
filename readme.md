@@ -17,6 +17,13 @@ const unro = require("unro");
 ```
 ### Changing some properties/settings of the feature
 
+- **Creating an instance to use**
+
+```javascript
+let stack = unro();
+
+```
+
 - **Expand the size of the stack**
 
 ```JavaScript
@@ -39,7 +46,7 @@ stack.setAlgorithme('lineare');
 
 function removeItem(elm, parent){
     // creating a new stack
-    unro.push({
+    stack.push({
         undo: () => parent.append(elm),
         redo: () => elm.remove()
     },/* true - to disable auto execute stack */);
@@ -51,7 +58,7 @@ let listOfFlowers = [];
 function removeFlower(name){
     let i = listOfFlowers.findIndex(a => a == name );
     if(i != -1)
-        unro.push({
+        stack.push({
             undo: function(){
                 let [flower, idx] = this.load();
                 arrInsert(listOfFlowers, flower, idx);
@@ -69,7 +76,7 @@ function removeFlower(name){
 
 ```javascript
 render(ctx){
-    unro.push({
+    stack.push({
         // we first defined the canvas to take from/put to
         renderer2D: ctx,
         // those will run after the main paste action
@@ -95,21 +102,21 @@ render(ctx){
 ```JavaScript
 
 // to undo
-unro.undo();
+stack.undo();
 
 // to redo
-unro.undo();
+stack.undo();
 
 // to go to a specific stack
-unro.moveTo(4);
+stack.moveTo(4);
 // this functions `out-of-range` for uknown stack index
 // or `current` if requested stack is current one 
 
 // free stacks
-unro.free();
+stack.free();
 
 // exports the stacks identified by their labels defined at the ".push" call!
-unro.exportStackActions();
+stack.exportStackActions();
 ```
 
 - **Acquiring [Qway](https://www.npmjs.com/package/qway) or other shortcut library**
@@ -119,5 +126,5 @@ unro.exportStackActions();
    - `b`: ctrl+z => undo ctrl+shift+z => redo
 
 ```javascript
-unro.acquire(qway,pattern);
+stack.acquire(qway,pattern);
 ```
