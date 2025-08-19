@@ -1,6 +1,6 @@
 {
   "name": "unro",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "a simple undo/redo implimentation to speed up your work",
   "main": "./src/unro.js",
   "module": "dist/unro.esm.js",
