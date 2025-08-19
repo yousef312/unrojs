@@ -304,7 +304,7 @@ class Stack {
         this.#redo = def.redo;
         this.date = new Date();
         this.label = def.label;
-        if (def.renderer2D instanceof CanvasRenderingContext2D) {
+        if (def.renderer2D instanceof CanvasRenderingContext2D || def.renderer2D instanceof OffscreenCanvasRenderingContext2D) {
             this.#renderer2D = def.renderer2D;
             this.#ctxStack = [];
         }

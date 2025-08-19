@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.2.2] - 2025-08-20
+
+### Added
+
+ - `renderer2D` may take OffscreenCanvasRenderingContext2d
+
 ## [3.2.1] - 2025-08-03
 
 ### Fixed
