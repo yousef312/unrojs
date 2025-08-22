@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.2.3] - 2025-08-22
+
+### Fixed
+
+ - when undo to 0 then redo the second stack is missed, passed to the next, Fixed!
+
 ## [3.2.2] - 2025-08-20
 
 ### Added

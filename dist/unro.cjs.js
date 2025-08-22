@@ -76,15 +76,15 @@ class Unro {
     }
 
 
-    get lastAction(){
+    get lastAction() {
         return this.#last;
     }
 
-    get isFirstStack(){
+    get isFirstStack() {
         return this.#allundone === true;
     }
 
-    get isLastStack(){
+    get isLastStack() {
         return this.#alldone === true;
     }
 
@@ -134,14 +134,19 @@ class Unro {
      * @returns {Unro}
      */
     undo() {
-        if(this.#allundone) return;
+        if (this.#allundone) return;
 
-        this.#stack[this.current].undo(this);
-        if (this.#stack[this.current - 1])
-            this.current--;
-        else this.#allundone = true;
-
+        // executing
         this.#last = "undo";
+        this.#stack[this.current].undo(this);
+
+        // decreasing
+        if (this.current > -2)
+            this.current--;
+
+        if (this.current < 0)
+            return this.#allundone = true;
+
         this.#alldone = false;
         return this;
     }
@@ -151,13 +156,17 @@ class Unro {
      * @returns {Unro}
      */
     redo() {
+        
+        // increasing
         if (this.#stack[this.current + 1])
             this.current++;
         else return this.#alldone = true;
-        
+
+        // executing
         this.#stack[this.current].redo(this);
         this.#last = "redo";
         this.#allundone = false;
+
         return this;
     }
     /**
