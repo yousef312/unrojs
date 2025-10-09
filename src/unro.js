@@ -47,6 +47,12 @@ class Unro {
      */
     #allundone = false;
 
+    /**
+     * List of defined labeled stacks handlers created through `.define` method
+     * @type {Array<{ label: string, undo: (...args) =>, redo: (...args) => }>}
+     */
+    #defined = [];
+
     constructor() {
 
         /**
@@ -93,10 +99,24 @@ class Unro {
      * you set `dontExecute` as true.
      * @method Unro#push
      * @param {StackDef} stackdef
+     * @param {Object} params
      * @returns {number} the current state index
      */
-    push(stackdef) {
+    push(stackdef, params) {
         if (!stackdef || stackdef.toString() !== '[object Object]') return;
+        if (typeof stackdef === "string") {
+            let hnd = this.#defined.find(a => a.label === stackdef);
+            if (hnd) {
+                stackdef = {
+                    undo: function () {
+                        hnd.undo(params);
+                    },
+                    redo: function () {
+                        hnd.redo(params);
+                    }
+                }
+            } else return;
+        }
         let stack = new Stack(stackdef);
         if (typeof stackdef.init === "function") {
             stackdef.init(stack);
@@ -154,7 +174,7 @@ class Unro {
      * @returns {Unro}
      */
     redo() {
-        
+
         // increasing
         if (this.#stack[this.current + 1])
             this.current++;
@@ -270,6 +290,18 @@ class Unro {
                 _this.redo();
             })
         }
+        return this
+    }
+
+
+    /**
+     * Define a labeled re-usable stack action handler
+     * @param {{ label: string, undo: (...args) =>, redo: (...args) => }} handler 
+     */
+    define(handler) {
+        if (handler.toString() === "[Object object]" && typeof handler.label === "string" && typeof handler.undo === "function" && typeof handler.redo === "function")
+            this.#defined.push({ label, handler });
+        else throw new Error(`UnroJs Error\n trying to use ".define" function with wrong parameter type or structure!`);
     }
 
     /**
