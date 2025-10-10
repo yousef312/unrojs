@@ -443,5 +443,5 @@ function unro() {
 
 window.unro = unro;
 
-export { unro as default };
+export { Unro, unro as default };
 //# sourceMappingURL=unro.esm.js.map

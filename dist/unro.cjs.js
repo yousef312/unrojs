@@ -1,5 +1,7 @@
 'use strict';
 
+Object.defineProperty(exports, '__esModule', { value: true });
+
 const algos = ['clearpath', 'insertion', 'lineare'];
 
 const dfn = () => { }; // dfn stands for Default function
@@ -445,5 +447,6 @@ function unro() {
 
 window.unro = unro;
 
-module.exports = unro;
+exports.Unro = Unro;
+exports.default = unro;
 //# sourceMappingURL=unro.cjs.js.map

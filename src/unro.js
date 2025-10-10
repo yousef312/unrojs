@@ -22,7 +22,7 @@ Array.prototype.insert = function (elm, index) {
  * Simple integration of undo/redo functionalities
  * @author Yousef Neji
  */
-class Unro {
+export class Unro {
     /**
      * The stacks container
      * @type {Array<Stack>}
