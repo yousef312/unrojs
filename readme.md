@@ -73,7 +73,6 @@ function removeFlower(name){
 
  this feature allows you to stack canvas content automating the `undo` `redo` calls.
 
-
 ```javascript
 render(ctx){
     stack.push({
@@ -95,6 +94,35 @@ render(ctx){
     });
 }
 ```
+
+- **handlers**
+
+Introducing pre-defined handlers for stacks operations, this RAM-friendlyt functionality allows to write once the same repetitive call, and use multiple times as u want, the tweak is using different parameters each time.
+
+```javascript
+var list = [];
+stack.defineHandler({
+    label: "addToArray",
+    undo: function(params){
+        const { elm } = params;
+        let idx = list.findIndex(a => a.name === elm.name );
+        if(idx != -1) list.splice(idx,1);
+    },
+    redo: function(params){
+        const { elm, idx } = params;
+        list.splice(idx,0,elm); // a trick to insert element in an array
+    }
+})
+
+
+buttonA.addEventListener('click',function(){
+    let idx = list.push(elm) - 1;
+    // --- usage ----
+    stack.push("addToArray",{ elm, idx })
+    // now you'll be having a functional undo/redo stack
+})
+```
+
 - **the real magic**
 
 `undo` `redo` ready for the job now, or you can also `moveTo` for quick navigation to certain stack.

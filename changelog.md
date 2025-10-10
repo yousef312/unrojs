@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.3.0] - 2025-10-10
+
+### Added
+
+ - introducing pre-defined handlers, a RAM friendly handlers that execute the same undo/redo functions of the stack with different parameters for each stack.
+ - new `.defineHandler` function to add a new handler 
+ - new `.removeHandler` function to remove a new handler 
+ - new `.hasHandler` function to check whether handler with given name exists or not
+  
 ## [3.2.3] - 2025-08-22
 
 ### Fixed

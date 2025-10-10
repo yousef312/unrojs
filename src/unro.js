@@ -49,7 +49,7 @@ class Unro {
 
     /**
      * List of defined labeled stacks handlers created through `.define` method
-     * @type {Array<{ label: string, undo: (...args) =>, redo: (...args) => }>}
+     * @type {Array<{ label: string, undo: (params: Object) =>, redo: (params: Object) => }>}
      */
     #defined = [];
 
@@ -103,10 +103,10 @@ class Unro {
      * @returns {number} the current state index
      */
     push(stackdef, params) {
-        if (!stackdef || stackdef.toString() !== '[object Object]') return;
+        if (!stackdef || (stackdef.toString() !== '[object Object]' && typeof stackdef != "string")) return;
         if (typeof stackdef === "string") {
             let hnd = this.#defined.find(a => a.label === stackdef);
-            if (hnd) {
+            if (hnd)
                 stackdef = {
                     undo: function () {
                         hnd.undo(params);
@@ -115,7 +115,7 @@ class Unro {
                         hnd.redo(params);
                     }
                 }
-            } else return;
+            else return;
         }
         let stack = new Stack(stackdef);
         if (typeof stackdef.init === "function") {
@@ -296,12 +296,37 @@ class Unro {
 
     /**
      * Define a labeled re-usable stack action handler
-     * @param {{ label: string, undo: (...args) =>, redo: (...args) => }} handler 
+     * @param {{ label: string, undo: (params: Object) =>, redo: (params: Object) => }} handler 
      */
-    define(handler) {
+    defineHandler(handler) {
         if (handler.toString() === "[Object object]" && typeof handler.label === "string" && typeof handler.undo === "function" && typeof handler.redo === "function")
-            this.#defined.push({ label, handler });
+            this.#defined.push(handler);
         else throw new Error(`UnroJs Error\n trying to use ".define" function with wrong parameter type or structure!`);
+    }
+
+    /**
+     * Remove handler with given `name` and return a boolean of whether deletion was successful or not
+     * @param {string} name 
+     * @returns {boolean}
+     */
+    removeHandler(name) {
+        if (typeof name === "string") {
+            let idx = this.#defined.findIndex(a => a.label === name);
+            if (idx != -1) {
+                this.#defined.splice(idx, 1);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check whether handler with given `name`/label exists or not
+     * @param {string} name 
+     * @returns {boolean}
+     */
+    hasHandler(name) {
+        return this.#defined.findIndex(a => a.label === name) != -1;
     }
 
     /**
