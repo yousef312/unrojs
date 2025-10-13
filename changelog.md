@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.3.2] - 2025-10-13
+
+### Fixed
+
+ - `.defineHandler` keeps showing the `wrong parameter` error, fixed.
+
 ## [3.3.1] - 2025-10-10
 
 ### Added

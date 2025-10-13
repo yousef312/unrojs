@@ -299,9 +299,9 @@ class Unro {
      * @param {{ label: string, undo: (params: Object) =>, redo: (params: Object) => }} handler 
      */
     defineHandler(handler) {
-        if (handler.toString() === "[Object object]" && typeof handler.label === "string" && typeof handler.undo === "function" && typeof handler.redo === "function")
+        if (handler.toString() === "[object Object]" && typeof handler.label === "string" && typeof handler.undo === "function" && typeof handler.redo === "function")
             this.#defined.push(handler);
-        else throw new Error(`UnroJs Error\n trying to use ".define" function with wrong parameter type or structure!`);
+        else throw new Error(`UnroJs Error\n trying to use ".defineHandler" function with wrong parameter type or structure!`);
     }
 
     /**
