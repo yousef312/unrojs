@@ -148,6 +148,7 @@ class Unro {
             this.current = oldIndex;
         }
 
+        this.#allundone = false; // we just add a new stack so continue
         return this.current;
     }
     /**
@@ -157,15 +158,12 @@ class Unro {
      */
     undo() {
         if (this.#allundone) return;
-
         // executing
         this.#last = "undo";
         this.#stack[this.current].undo(this);
-
         // decreasing
         if (this.current > -2)
             this.current--;
-
         if (this.current < 0)
             return this.#allundone = true;
 
@@ -178,7 +176,6 @@ class Unro {
      * @returns {Unro}
      */
     redo() {
-
         // increasing
         if (this.#stack[this.current + 1])
             this.current++;
@@ -188,7 +185,6 @@ class Unro {
         this.#stack[this.current].redo(this);
         this.#last = "redo";
         this.#allundone = false;
-
         return this;
     }
     /**
