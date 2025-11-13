@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.0.0] - 2025-11-13
+### Changed
+ - Canvas context stacks are now defined using a function rather then an Object
+ - Library use less ram as we switch to use ImageData instead of canvas and drawing content on it!
+ - Stacks `.save` and `.load` are key based now, so u do `.save("name","Ahmed")` instead of saving single value per stack `.save("Ahmed")` which pretty useless!.
+
 ## [3.3.3] - 2025-11-11
 ### Fixed
  -  when undo to 0 then push a new stack the library stops working! Fixed.

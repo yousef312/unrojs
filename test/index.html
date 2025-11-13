@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            width: 250px;
+            height: 250px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 250px;
+        }
+
+        .control {
+            display: flex;
+        }
+
+        .control>button {
+            flex: 1 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Canvas Context Stacking mini-player</h1>
+    <div class="container">
+        <canvas></canvas>
+        <div class="control">
+            <button class="undo">undo(arrowleft)</button>
+            <button class="redo">redo(arrowright)</button>
+        </div>
+        <button class="draw">draw line</button>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>

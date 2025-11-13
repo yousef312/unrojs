@@ -15,13 +15,13 @@ import unro from "unro";
 // CommonJS
 const unro = require("unro");
 ```
+
 ### Changing some properties/settings of the feature
 
 - **Creating an instance to use**
 
 ```javascript
 let stack = unro();
-
 ```
 
 - **Expand the size of the stack**
@@ -31,16 +31,16 @@ stack.expand(30);
 // now the stack is able to contain a thirteen stack and navigate through them
 ```
 
- - **Change the used algorithme, which could be:**
-   - `clearpath` : once you undo and push new stack the forward stacks will be removed.
-   - `insertion` : once you undo and push new stack the new one will be inserted in front of the forward stacks.
-   - `lineare` : once you push new stack it will be always added to the end of the stacks list.
+- **Change the used algorithme, which could be:**
+  - `clearpath` : once you undo and push new stack the forward stacks will be removed.
+  - `insertion` : once you undo and push new stack the new one will be inserted in front of the forward stacks.
+  - `lineare` : once you push new stack it will be always added to the end of the stacks list.
 
 ```JavaScript
 stack.setAlgorithme('lineare');
 ```
 
- - **Pushing normal stack:**
+- **Pushing normal stack:**
 
 ```JavaScript
 
@@ -53,7 +53,7 @@ function removeItem(elm, parent){
     // the stack will auto execute unless you passed `true`
 }
 
-// using .save and .load 
+// using .save and .load
 let listOfFlowers = [];
 function removeFlower(name){
     let i = listOfFlowers.findIndex(a => a == name );
@@ -69,28 +69,25 @@ function removeFlower(name){
         })
 }
 ```
- - **Canvas Stacking:**
 
- this feature allows you to stack canvas content automating the `undo` `redo` calls.
+- **Canvas Stacking:**
+
+this feature allows you to stack canvas content automating the `undo` `redo` calls.
 
 ```javascript
-render(ctx){
-    stack.push({
-        // we first defined the canvas to take from/put to
-        renderer2D: ctx,
-        // those will run after the main paste action
-        undo: function(){
-            _this.app.renderer.render();
-        },
-        redo: function(){
-            _this.app.renderer.render();
-        },
-        // now the init function that will auto define our "undo" and "redo" function at the background
-        init: function (st) {
-            st.copy(); // auto create the undo fn 
-            ctx.fillRect(x0, y0, distX, distY);
-            st.copy(); // auto create the redo fn 
-        }
+drawLine(ctx,x1,y1,x2,y2){
+    stack.push(function(mk){
+        mk.use(ctx); // the destination canvas in which content will be changed
+        mk.register('undo'); // register the undo stack
+
+        // do rendering code in here, will auto execute
+        ctx.beginPath();
+        ctx.moveTo(x1,y1);
+        ctx.lineTo(x2,y2);
+        ctx.stroke();
+        ctx.closePath();
+
+        mk.register('redo'); // register the redo stack
     });
 }
 ```
@@ -102,25 +99,24 @@ Introducing pre-defined handlers for stacks operations, this RAM-friendlyt funct
 ```javascript
 var list = [];
 stack.defineHandler({
-    label: "addToArray",
-    undo: function(params){
-        const { elm } = params;
-        let idx = list.findIndex(a => a.name === elm.name );
-        if(idx != -1) list.splice(idx,1);
-    },
-    redo: function(params){
-        const { elm, idx } = params;
-        list.splice(idx,0,elm); // a trick to insert element in an array
-    }
-})
+  label: "addToArray",
+  undo: function (params) {
+    const { elm } = params;
+    let idx = list.findIndex((a) => a.name === elm.name);
+    if (idx != -1) list.splice(idx, 1);
+  },
+  redo: function (params) {
+    const { elm, idx } = params;
+    list.splice(idx, 0, elm); // a trick to insert element in an array
+  },
+});
 
-
-buttonA.addEventListener('click',function(){
-    let idx = list.push(elm) - 1;
-    // --- usage ----
-    stack.push("addToArray",{ elm, idx })
-    // now you'll be having a functional undo/redo stack
-})
+buttonA.addEventListener("click", function () {
+  let idx = list.push(elm) - 1;
+  // --- usage ----
+  stack.push("addToArray", { elm, idx });
+  // now you'll be having a functional undo/redo stack
+});
 ```
 
 - **the real magic**
@@ -138,7 +134,7 @@ stack.undo();
 // to go to a specific stack
 stack.moveTo(4);
 // this functions `out-of-range` for uknown stack index
-// or `current` if requested stack is current one 
+// or `current` if requested stack is current one
 
 // free stacks
 stack.free();
@@ -150,9 +146,9 @@ stack.exportStackActions();
 - **Acquiring [Qway](https://www.npmjs.com/package/qway) or other shortcut library**
 
 - the `pattern`(second parameter) either accepts `a` or `b`:
-   - `a`: ctrl+z => undo ctrl+y => redo
-   - `b`: ctrl+z => undo ctrl+shift+z => redo
+  - `a`: ctrl+z => undo ctrl+y => redo
+  - `b`: ctrl+z => undo ctrl+shift+z => redo
 
 ```javascript
-stack.acquire(qway,pattern);
+stack.acquire(qway, pattern);
 ```

@@ -16,10 +16,16 @@ Array.prototype.insert = function (elm, index) {
  * @typedef {Object} StackDef
  * @property {function} undo called when user is attempting to undo action
  * @property {function} redo called when user is attempting to redo action
- * @property {function} init called to auto create a stack
- * @property {CanvasRenderingContext2D} renderer2D attach a ctx to activate the canvas copy/paste feature
  * @property {string} label helps identifiy the stack action
  * @property {Date} date the stack action date
+ */
+
+/**
+ * Utility used to to create Canvas Stack
+ * @typedef {Object} Maker
+ * @property {(dst: OffscreenCanvasRenderingContext2D|CanvasRenderingContext2D)=>} use Define destination to use in the Stack
+ * @property {(str: string)=>} label Label the stack
+ * @property {(step: "undo"|"redo", src?: OffscreenCanvasRenderingContext2D|CanvasRenderingContext2D)=>} register Register `undo` & `redo` calls
  */
 
 /**
@@ -57,6 +63,13 @@ class Unro {
      */
     #defined = [];
 
+
+    /**
+     * Used to create canvas stacks
+     * @type {Maker}
+     */
+    #maker = null;
+
     constructor() {
 
         /**
@@ -81,6 +94,64 @@ class Unro {
          * @type {string}
          */
         this.algo = "clearpath";
+
+        const maker = () => {
+            let destination, label, undo, redo;
+            return {
+                use: (dst) => {
+                    if (
+                        dst instanceof OffscreenCanvasRenderingContext2D ||
+                        dst instanceof CanvasRenderingContext2D
+                    )
+                        destination = dst;
+                    else throw new Error(`UnroJs Definition Error\n Parameter passed in ".use" function must be of type OffscreenCanvasRenderingContext2D or CanvasRenderingContext2D`);
+                },
+                label: (str) => label = str,
+                register: (step, src) => {
+                    if (!destination && (!src || (!(src instanceof OffscreenCanvasRenderingContext2D) && !(src instanceof CanvasRenderingContext2D)) ))
+                        throw new Error(`UnroJs Defintion Error\n ".register" is missing the source parameter`)
+                    const f = src || destination;
+                    switch (step) {
+                        case "undo":
+                            undo = f.getImageData(0, 0, f.canvas.width, f.canvas.height);
+                            break;
+                        case "redo":
+                            redo = f.getImageData(0, 0, f.canvas.width, f.canvas.height);
+                            break;
+                    }
+                },
+                process: function () {
+                    if (!(this instanceof Unro))
+                        throw new Error(`UnroJs Error\n".process" function is only callable from within Unro class`);
+                    if (!undo || !redo || !destination)
+                        throw new Error(`UnroJs Definition Error\n Definition is missing "undo" or "redo" stacks or destination CanvasContext! make sure to call ".register(stack)" and ".use(dst)" from within the maker`);
+                    let nst = new Stack({
+                        undo: function () {
+                            this.load("source").putImageData(this.load("undo"), 0, 0);
+                        },
+                        redo: function () {
+                            this.load("source").putImageData(this.load("redo"), 0, 0);
+                        },
+                        label
+                    });
+                    nst.save("source", destination);
+                    nst.save("undo", undo);
+                    nst.save("redo", redo);
+                    return nst;
+                },
+                kill: function () {
+                    if (!(this instanceof Unro))
+                        throw new Error(`UnroJs Error\n".kill" function is only callable from within Unro class`);
+                    redo =
+                        undo =
+                        label =
+                        destination = undefined;
+                    // now we can re-use the make over and over again!
+                }
+            }
+        };
+
+        this.#maker = maker();
     }
 
 
@@ -96,18 +167,19 @@ class Unro {
         return this.#alldone === true;
     }
 
-
-
     /**
      * Push new stack/state into the stacks list, and directly execute unless
      * you set `dontExecute` as true.
      * @method Unro#push
-     * @param {StackDef} stackdef
+     * @param {StackDef|(mk: Maker)=>} stackdef
      * @param {Object} params
      * @returns {number} the current state index
      */
     push(stackdef, params) {
-        if (!stackdef || (stackdef.toString() !== '[object Object]' && typeof stackdef != "string")) return;
+        if (!stackdef ||
+            (stackdef.toString() !== '[object Object]' &&
+                !['string', 'function'].includes(typeof stackdef))) return;
+
         if (typeof stackdef === "string") {
             let hnd = this.#defined.find(a => a.label === stackdef);
             if (hnd)
@@ -121,13 +193,14 @@ class Unro {
                 };
             else return;
         }
-        let stack = new Stack(stackdef);
-        if (typeof stackdef.init === "function") {
-            stackdef.init(stack);
-
-            if (!stack.isReady) throw new Error(`[UnroJS] the .init function not well constructed`);
+        let stack;
+        if (typeof stackdef === "function") {
+            stackdef(this.#maker);
+            stack = this.#maker.process.call(this);
+            this.#maker.kill.call(this); // reset for an other use later 
         } else if (typeof stackdef.undo != "function" || typeof stackdef.redo != "function")
             throw new Error(`[UnroJS] wrong stack defintion in .push, a stack must have undo & redo or init functions`);
+        else stack = new Stack(stackdef);
 
         // let's prepare the stack state storage
         let oldIndex = this.current;
@@ -341,22 +414,7 @@ class Unro {
 class Stack {
     #undo = dfn;
     #redo = dfn;
-    /**
-     * Provider of render from/to canvas feature
-     * @type {CanvasRenderingContext2D}
-     */
-    #renderer2D = null;
-    /**
-     * Canvas stack when using render from/to feature
-     * @type {Array<CanvasRenderingContext2D>}
-     */
-    #ctxStack = null;
-    #state = null;
-    /**
-     * Used for canvas copy/paste to check whether the stack is ready or not
-     * @type {boolean}
-     */
-    #ready = false;
+    #attrs = {};
     #id = ++counter;
 
     /**
@@ -368,10 +426,6 @@ class Stack {
         this.#redo = def.redo;
         this.date = new Date();
         this.label = def.label;
-        if (def.renderer2D instanceof CanvasRenderingContext2D || def.renderer2D instanceof OffscreenCanvasRenderingContext2D) {
-            this.#renderer2D = def.renderer2D;
-            this.#ctxStack = [];
-        }
     }
 
     get undo() {
@@ -382,57 +436,16 @@ class Stack {
         return this.#redo;
     }
 
-    get isReady() {
-        return this.#ready;
-    }
-
     get id() {
         return this.#id
     }
 
-    save(data) {
-        if (data != undefined)
-            this.#state = data;
+    save(key, value) {
+        if (typeof key === "string" && value != undefined)
+            this.#attrs[key] = value;
     }
-    load() {
-        return this.#state;
-    }
-    copy() {
-        if (!this.#renderer2D)
-            throw new Error(`[UnroJS] Define .renderer2D in order to use canvas copy/paste features.`);
-
-        if (this.#ctxStack.length <= 2) {
-            let ctx = new OffscreenCanvas(this.#renderer2D.canvas.width, this.#renderer2D.canvas.height).getContext('2d');
-            ctx.drawImage(this.#renderer2D.canvas, 0, 0);
-            this.#ctxStack.push(ctx);
-
-            if (this.#ctxStack.length == 2) {
-                this.#ready = true;
-                // auto construct
-                let oldUndo = this.#undo;
-                let oldRedo = this.#redo;
-                this.#undo = function () {
-                    this.paste('undo');
-                    if (typeof oldUndo === "function") oldUndo();
-                };
-                this.#redo = function () {
-                    this.paste('redo');
-                    if (typeof oldRedo === "function") oldRedo();
-                };
-            }
-        }
-    }
-
-    paste(step) {
-        if (!this.#renderer2D)
-            throw new Error(`[UnroJS] Define .renderer2D in order to use canvas copy/paste features.`);
-
-        // getting canvas stack
-        let ctx = this.#ctxStack[[1, "undo"].includes(step) ? 0 : [2, "redo"].includes(step) ? 1 : -1];
-        if (!ctx) throw new Error(`[UnroJS] Unknown "step" in .paste "${step}"`);
-        // displaying it
-        this.#renderer2D.clearRect(0, 0, this.#renderer2D.canvas.width, this.#renderer2D.canvas.height);
-        this.#renderer2D.drawImage(ctx.canvas, 0, 0);
+    load(key) {
+        return key ? this.#attrs[key] : { ...this.#attrs };
     }
 }
 
