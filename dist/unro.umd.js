@@ -28,6 +28,7 @@
      * @property {(dst: OffscreenCanvasRenderingContext2D|CanvasRenderingContext2D)=>} use Define destination to use in the Stack
      * @property {(str: string)=>} label Label the stack
      * @property {(step: "undo"|"redo", src?: OffscreenCanvasRenderingContext2D|CanvasRenderingContext2D)=>} register Register `undo` & `redo` calls
+     * @property {(step: "unro"|"redo"|()=>, cb?: ()=>)=>} after defines a callback to run after one of the stacks or both
      */
 
     /**
@@ -98,7 +99,7 @@
             this.algo = "clearpath";
 
             const maker = () => {
-                let destination, label, undo, redo;
+                let destination, label, undo, redo, undoCb, redoCb;
                 return {
                     use: (dst) => {
                         if (
@@ -110,7 +111,7 @@
                     },
                     label: (str) => label = str,
                     register: (step, src) => {
-                        if (!destination && (!src || (!(src instanceof OffscreenCanvasRenderingContext2D) && !(src instanceof CanvasRenderingContext2D)) ))
+                        if (!destination && (!src || (!(src instanceof OffscreenCanvasRenderingContext2D) && !(src instanceof CanvasRenderingContext2D))))
                             throw new Error(`UnroJs Defintion Error\n ".register" is missing the source parameter`)
                         const f = src || destination;
                         switch (step) {
@@ -122,6 +123,12 @@
                                 break;
                         }
                     },
+                    after: (step, cb) => {
+                        if ((typeof step === "function" || step === "undo") && typeof cb === "function")
+                            undoCb = cb;
+                        if ((typeof step === "function" || step === "redo") && typeof cb === "function")
+                            redoCb = cb;
+                    },
                     process: function () {
                         if (!(this instanceof Unro))
                             throw new Error(`UnroJs Error\n".process" function is only callable from within Unro class`);
@@ -130,15 +137,19 @@
                         let nst = new Stack({
                             undo: function () {
                                 this.load("source").putImageData(this.load("undo"), 0, 0);
+                                if(this.load("undo-cb")) this.load("undo-cb")();
                             },
                             redo: function () {
                                 this.load("source").putImageData(this.load("redo"), 0, 0);
+                                if(this.load("redo-cb")) this.load("redo-cb")();
                             },
                             label
                         });
                         nst.save("source", destination);
                         nst.save("undo", undo);
                         nst.save("redo", redo);
+                        if(typeof undoCb === "function") nst.save("undo-cb",undoCb);
+                        if(typeof redoCb === "function") nst.save("redo-cb",redoCb);
                         return nst;
                     },
                     kill: function () {
