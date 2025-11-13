@@ -1,6 +1,6 @@
 # Changelog
 
-## [4.0.1] - 2025-11-13
+## [4.1.0] - 2025-11-13
 ### Changed
  - Canvas context stacks are now defined using a function rather then an Object
  - Library use less ram as we switch to use ImageData instead of canvas and drawing content on it!
