@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.2.0] - 2025-11-13
+### Added
+ - `.register` method also accept read-to-use ImageData
+ 
 ## [4.1.0] - 2025-11-13
 ### Changed
  - Canvas context stacks are now defined using a function rather then an Object

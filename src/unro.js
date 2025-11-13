@@ -21,7 +21,7 @@ Array.prototype.insert = function (elm, index) {
  * @typedef {Object} Maker
  * @property {(dst: OffscreenCanvasRenderingContext2D|CanvasRenderingContext2D)=>} use Define destination to use in the Stack
  * @property {(str: string)=>} label Label the stack
- * @property {(step: "undo"|"redo", src?: OffscreenCanvasRenderingContext2D|CanvasRenderingContext2D)=>} register Register `undo` & `redo` calls
+ * @property {(step: "undo"|"redo", src?: OffscreenCanvasRenderingContext2D|CanvasRenderingContext2D|ImageData)=>} register Register `undo` & `redo` calls
  * @property {(step: "unro"|"redo"|()=>, cb?: ()=>)=>} after defines a callback to run after one of the stacks or both
  */
 
@@ -110,10 +110,10 @@ export class Unro {
                     const f = src || destination;
                     switch (step) {
                         case "undo":
-                            undo = f.getImageData(0, 0, f.canvas.width, f.canvas.height);
+                            undo = f instanceof ImageData ? f : f.getImageData(0, 0, f.canvas.width, f.canvas.height);
                             break;
                         case "redo":
-                            redo = f.getImageData(0, 0, f.canvas.width, f.canvas.height);
+                            redo = f instanceof ImageData ? f : f.getImageData(0, 0, f.canvas.width, f.canvas.height);
                             break;
                     }
                 },
