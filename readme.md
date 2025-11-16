@@ -92,6 +92,33 @@ drawLine(ctx,x1,y1,x2,y2){
 }
 ```
 
+- **bigPush**
+
+Make all executed .push inside a one stack!
+
+```javascript
+stack.bigPush(function () {
+  insects.forEach((insect) => {
+    let ox = insect.x;
+    let oy = insect.y;
+    let nx = ox + rand(xvalue);
+    let ny = oy + rand(yvalue);
+    insect.x = nx; // supposedly a function that gives a random number between 0-value
+    insect.y = ny;
+    stack.push({
+      undo: function () {
+        insect.x = ox;
+        insect.y = oy;
+      },
+      redo: function () {
+        insect.x = nx;
+        insect.y = ny;
+      },
+    });
+  });
+});
+```
+
 - **handlers**
 
 Introducing pre-defined handlers for stacks operations, this RAM-friendlyt functionality allows to write once the same repetitive call, and use multiple times as u want, the tweak is using different parameters each time.

@@ -67,6 +67,13 @@ class Unro {
      */
     #maker = null;
 
+    /**
+     * Used inside `.bigPush` to gather the stacks together
+     * and use them as single stack
+     * @type {{ on: boolean, list: [Stack]}}
+     */
+    #batchmode = { on: false, list: [] };
+
     constructor() {
 
         /**
@@ -180,18 +187,17 @@ class Unro {
     }
 
     /**
-     * Push new stack/state into the stacks list, and directly execute unless
-     * you set `dontExecute` as true.
-     * @method Unro#push
-     * @param {StackDef|(mk: Maker)=>} stackdef
-     * @param {Object} params
-     * @returns {number} the current state index
-     */
+ * Push new stack/state into the stacks list, and directly execute unless
+ * you set `dontExecute` as true.
+ * @method Unro#push
+ * @param {StackDef|(mk: Maker)=>} stackdef
+ * @param {Object} params
+ * @returns {number} the current state index
+ */
     push(stackdef, params) {
         if (!stackdef ||
             (stackdef.toString() !== '[object Object]' &&
                 !['string', 'function'].includes(typeof stackdef))) return;
-
         if (typeof stackdef === "string") {
             let hnd = this.#defined.find(a => a.label === stackdef);
             if (hnd)
@@ -213,6 +219,9 @@ class Unro {
         } else if (typeof stackdef.undo != "function" || typeof stackdef.redo != "function")
             throw new Error(`[UnroJS] wrong stack defintion in .push, a stack must have undo & redo or init functions`);
         else stack = new Stack(stackdef);
+
+        if (this.#batchmode.on)
+            return this.#batchmode.list.push(stack);
 
         // let's prepare the stack state storage
         let oldIndex = this.current;
@@ -237,6 +246,46 @@ class Unro {
         return this.current;
     }
     /**
+     * Big push is pretty help for plenty of changes at the same time!
+     * all executed `.push` inside the callback will batched together
+     * as a single stack! 
+     * @param {()=>} cb 
+     */
+    bigPush(cb) {
+        if(typeof cb !== "function") return;
+        // preparing
+        this.#batchmode.on = true;
+        this.#batchmode.list = [];
+        cb();
+
+        // let's prepare the stack state storage
+        const stack = [...this.#batchmode.list];
+        if(!stack.length) console.warn(`UnroJs warn\nbigPush method was called but no stacks was created! \n consider review usage documentation!`);
+        let oldIndex = this.current;
+
+        if (this.algo === 'lineare')
+            this.current = this.#stack.push(stack) - 1;
+        else if (this.algo === 'clearpath') {
+            if (this.#stack[oldIndex + 1] !== undefined)
+                this.#stack.splice(oldIndex + 1, this.#stack.length);
+            this.current = this.#stack.push(stack) - 1;
+        } else if (this.algo === 'insertion') {
+            this.current = this.#stack.insert(stack, oldIndex + 1);
+        }
+
+        // respect maximum term
+        if (this.#stack.length > this.maximum) {
+            this.#stack.shift();
+            this.current = oldIndex;
+        }
+
+        this.#allundone = false; // we just add a new stack so continue
+        // emptying
+        this.#batchmode.on = false;
+        this.#batchmode.list = [];
+        return this.current;
+    }
+    /**
      * Undo the last change or state/stack
      * @method Unro#undo
      * @returns {Unro}
@@ -245,7 +294,10 @@ class Unro {
         if (this.#allundone) return;
         // executing
         this.#last = "undo";
-        this.#stack[this.current].undo(this);
+        (Array.isArray(this.#stack[this.current]) ?
+            this.#stack[this.current] :
+            [this.#stack[this.current]])
+            .forEach(stack => stack.undo(this));
         // decreasing
         if (this.current > -2)
             this.current--;
@@ -267,7 +319,10 @@ class Unro {
         else return this.#alldone = true;
 
         // executing
-        this.#stack[this.current].redo(this);
+        (Array.isArray(this.#stack[this.current]) ?
+            this.#stack[this.current] :
+            [this.#stack[this.current]])
+            .forEach(stack => stack.redo(this));
         this.#last = "redo";
         this.#allundone = false;
         return this;

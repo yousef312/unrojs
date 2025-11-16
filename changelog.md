@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.3.0] - 2025-11-16
+### Added
+ - `.bigPush` new method for pushing complex stacks
+
 ## [4.2.0] - 2025-11-13
 ### Added
  - `.register` method also accept read-to-use ImageData
